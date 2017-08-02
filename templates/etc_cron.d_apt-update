@@ -1,0 +1,1 @@
+0 4 * * *   root   apt-get update > /dev/null 2> /dev/null

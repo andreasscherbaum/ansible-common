@@ -1,0 +1,396 @@
+---
+
+# fail if it's not a Debian based system
+- name: Check OS (common)
+  fail: msg="Not a Debian based system!"
+  when: ansible_distribution != 'Debian' and ansible_distribution != 'Ubuntu'
+
+
+# reject the play if systemd is not used
+- name: check if systemd is used (1)
+  stat: path=/run/systemd/system
+  register: systemd_exists
+
+
+- name: check if systemd is used (2)
+  fail: msg="systemd is not installed"
+  when: systemd_exists.stat.exists != True
+
+
+# update package cache - required for any new software installation
+- name: Update apt cache
+  apt: update_cache=yes
+  changed_when: false
+
+
+#- name: inventory_hostname
+#  debug: msg="{{ inventory_hostname }}"
+
+#- name: IP-Address
+#  debug: msg="{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+
+
+
+- block:
+
+  - name: disable hostnamed private networks
+    lineinfile: dest=/lib/systemd/system/systemd-hostnamed.service regexp='^PrivateNetwork=' line='PrivateNetwork=no' state=present
+    register: hostnamed
+
+  - name: restart hostnamed
+    command: systemctl daemon-reload
+    when: hostnamed.changed
+
+  when: lxd_name is defined
+
+
+# set hostname based on submitted name
+- name: Hostname
+  hostname: name={{ hostname }}
+
+
+# add IP address and new hostname
+- name: /etc/hosts IPv4
+  lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}\t{{ hostname }} {{ hostname }}.{{ domainname }}' state=present
+  #when: hostvars[inventory_hostname]['ansible_default_ipv4']['address'] is defined
+- name: /etc/hosts IPv6
+  lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}\t{{ hostname }} {{ hostname }}.{{ domainname }}' state=present
+  #when: hostvars[inventory_hostname]['ansible_default_ipv6']['address'] is defined
+
+
+# generate ssh keys for root user
+- name: root SSH keys
+  command: ssh-keygen -N '' -t rsa -f /root/.ssh/id_rsa creates=/root/.ssh/id_rsa
+
+
+# prefer IPv4 connections
+- name: /etc/gai.conf
+  lineinfile: dest=/etc/gai.conf regexp='^precedence ::ffff:0:0/96  100' line='precedence ::ffff:0:0/96  100' state=present
+
+
+# install basic packages (Debian/Ubuntu)
+- name: basic packages
+  apt: name={{ item }} state=present
+  with_items:
+    - vim
+    - nano
+    - screen
+    - man-db
+    - psmisc
+    - bind9-host
+    - rsync
+    - unison
+    - wget
+    - mutt
+    - lynx
+    - debconf-utils
+    - unzip
+    - debconf-utils
+    - make
+    - git
+    - bzip2
+    - zip
+    - unzip
+    - python3
+    - python3-dev
+    - python-yaml
+    - python3-yaml
+    - python-pip
+    - python3-pip
+    - python-virtualenv
+    - python3-virtualenv
+    - curl
+    - byobu
+    - postfix
+
+
+# install basic packages (Ubuntu only)
+- name: basic packages (Ubuntu)
+  apt: name={{ item }} state=present
+  with_items:
+    - update-manager-core
+    - software-properties-common
+  when: ansible_distribution == 'Ubuntu'
+
+
+# set the default locale for the system
+- name: select default locale
+  debconf:
+    name: locales
+    question: locales/default_environment_locale
+    value: en_US.UTF-8
+    vtype: select
+  notify:
+    - rebuild locales database
+
+
+# add desired locale settings
+- name: /etc/locale.gen
+  lineinfile:
+    dest: /etc/locale.gen
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: "{{ item.state }}"
+  with_items:
+    - { regexp: '^#? ?de_DE ISO-8859-1', line: 'de_DE ISO-8859-1', state: present }
+    - { regexp: '^#? ?de_DE.UTF-8 UTF-8', line: 'de_DE.UTF-8 UTF-8', state: present }
+    - { regexp: '^#? ?de_DE@euro ISO-8859-15', line: 'de_DE@euro ISO-8859-15', state: present }
+    - { regexp: '^#? ?en_GB ISO-8859-1', line: 'en_GB ISO-8859-1', state: present }
+    - { regexp: '^#? ?en_GB.ISO-8859-15 ISO-8859-15', line: 'en_GB.ISO-8859-15 ISO-8859-15', state: present }
+    - { regexp: '^#? ?en_GB.UTF-8 UTF-8', line: 'en_GB.UTF-8 UTF-8', state: present }
+    - { regexp: '^#? ?en_US ISO-8859-1', line: 'en_US ISO-8859-1', state: present }
+    - { regexp: '^#? ?en_US.ISO-8859-15 ISO-8859-15', line: 'en_US.ISO-8859-15 ISO-8859-15', state: present }
+    - { regexp: '^#? ?en_US.UTF-8 UTF-8', line: 'en_US.UTF-8 UTF-8', state: present }
+  notify:
+    - rebuild locales database
+
+
+- meta: flush_handlers
+
+
+# configure timezone database
+- name: tzdata
+  command: "{{ item }}"
+  with_items:
+    - echo tzdata  tzdata/Areas    select  Europe | debconf-set-selections
+    - echo tzdata  tzdata/Zones/Europe     select  Berlin | debconf-set-selections
+    - echo tzdata  tzdata/Zones/Etc        select  UTC | debconf-set-selections
+    - dpkg-reconfigure tzdata -f noninteractive
+    - touch /root/.tzdata-updated
+  args:
+    creates: /root/.tzdata-updated
+
+
+## add extra repositories
+#- name: software-properties-common
+#  shell: "{{ item }}"
+#  with_items:
+#    - add-apt-repository "deb http://archive.ubuntu.com/ubuntu $(lsb_release -sc) main universe restricted multiverse"
+#    - add-apt-repository "deb http://archive.canonical.com/ubuntu $(lsb_release -sc) partner"
+#    - touch /root/.software-properties-common-updated
+#  when: ansible_distribution == 'Ubuntu'
+#  args:
+#    creates: /root/.software-properties-common-updated
+
+
+- name: lsb_release version
+  shell: lsb_release -sc
+  register: lsb_release
+  changed_when: false
+
+
+# add extra repositories
+- name: software-properties-common
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+    update_cache: no
+    filename: software-properties-common
+  with_items:
+    - deb http://archive.ubuntu.com/ubuntu {{ lsb_release.stdout }} main universe restricted multiverse
+    - deb http://archive.canonical.com/ubuntu {{ lsb_release.stdout }} partner
+  when: ansible_distribution == 'Ubuntu'
+
+
+# add kernel modules
+- name: kernel modules
+  lineinfile:
+    dest: /etc/modules
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: "{{ item.state }}"
+    create: yes
+  with_items:
+    - { regexp: '^#? *dummy', line: '#dummy', state: present }
+    - { regexp: '^#? *loop ', line: 'loop max_loop=64', state: present }
+    - { regexp: '^#? *ipt_recent ', line: 'ipt_recent ip_list_tot=5000 ip_pkt_list_tot=200', state: present }
+  notify:
+    - restart system
+    - waiting for server to come back after restart
+
+
+# retrieve /etc/resolv.conf content
+- name: /etc/resolv.conf content
+  shell: cat /etc/resolv.conf
+  register: resolv_conf
+  changed_when: false
+
+
+# replace /etc/resolv.conf if this is the standard file from Hetzner
+- name: /etc/resolv.conf replacement
+  copy:
+    src: "{{ role_path }}/files/resolv.conf"
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: 0644
+  when: resolv_conf.stdout.find('Hetzner') != -1
+
+
+# update /etc/sysctl.conf
+- name: sysctl.conf
+  lineinfile:
+    dest: /etc/sysctl.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: "{{ item.state }}"
+    create: yes
+  with_items:
+    - { regexp: '^#? *net.ipv4.conf.all.accept_redirects', line: 'net.ipv4.conf.all.accept_redirects = 0', state: present }
+    - { regexp: '^#? *net.ipv4.conf.all.arp_announce', line: 'net.ipv4.conf.all.arp_announce = 1', state: present }
+    - { regexp: '^#? *net.ipv4.conf.all.forwarding', line: 'net.ipv4.conf.all.forwarding = 1', state: present }
+    - { regexp: '^#? *net.ipv4.conf.all.rp_filter', line: 'net.ipv4.conf.all.rp_filter = 1', state: present }
+    - { regexp: '^#? *net.ipv4.conf.default.arp_announce', line: 'net.ipv4.conf.default.arp_announce = 1', state: present }
+    - { regexp: '^#? *net.ipv4.conf.default.proxy_arp', line: 'net.ipv4.conf.default.proxy_arp = 1', state: present }
+    - { regexp: '^#? *net.ipv4.conf.default.rp_filter', line: 'net.ipv4.conf.default.rp_filter = 1', state: present }
+    - { regexp: '^#? *net.ipv4.conf.eth0.arp_announce', line: 'net.ipv4.conf.eth0.arp_announce = 2', state: present }
+    - { regexp: '^#? *net.ipv4.conf.eth0.arp_ignore', line: 'net.ipv4.conf.eth0.arp_ignore = 1', state: present }
+    - { regexp: '^#? *net.ipv4.conf.eth0.proxy_arp', line: 'net.ipv4.conf.eth0.proxy_arp = 1', state: present }
+    - { regexp: '^#? *net.ipv4.icmp_echo_ignore_broadcasts', line: 'net.ipv4.icmp_echo_ignore_broadcasts = 1', state: present }
+    - { regexp: '^#? *net.ipv4.ip_forward', line: 'net.ipv4.ip_forward = 1', state: present }
+
+    - { regexp: '^#? *net.ipv6.conf.all.accept_redirects', line: 'net.ipv6.conf.all.accept_redirects = 0', state: present }
+    #- { regexp: '^#? *net.ipv6.conf.all.arp_announce', line: 'net.ipv6.conf.all.arp_announce = 1', state: present }
+    - { regexp: '^#? *net.ipv6.conf.all.forwarding', line: 'net.ipv6.conf.all.forwarding = 1', state: present }
+    #- { regexp: '^#? *net.ipv6.conf.all.rp_filter', line: 'net.ipv6.conf.all.rp_filter = 1', state: present }
+    - { regexp: '^#? *net.ipv6.conf.default.accept_redirects', line: 'net.ipv6.conf.default.accept_redirects = 0', state: present }
+    #- { regexp: '^#? *net.ipv6.conf.default.arp_announce', line: 'net.ipv6.conf.default.arp_announce = 1', state: present }
+    #- { regexp: '^#? *net.ipv6.conf.default.proxy_arp', line: 'net.ipv6.conf.default.proxy_arp = 1', state: present }
+    #- { regexp: '^#? *net.ipv6.conf.default.rp_filter', line: 'net.ipv6.conf.default.rp_filter = 1', state: present }
+    #- { regexp: '^#? *net.ipv6.conf.eth0.arp_announce', line: 'net.ipv6.conf.eth0.arp_announce = 2', state: present }
+    #- { regexp: '^#? *net.ipv6.conf.eth0.proxy_arp', line: 'net.ipv6.conf.eth0.proxy_arp = 1', state: present }
+    #- { regexp: '^#? *net.ipv6.icmp_echo_ignore_broadcasts', line: 'net.ipv6.icmp_echo_ignore_broadcasts = 1', state: present }
+    #- { regexp: '^#? *net.ipv6.ip_forward', line: 'net.ipv6.ip_forward = 1', state: present }
+  when: lxd_name is not defined
+  notify:
+    - reload sysctl.conf
+
+
+# update apt database once in a while
+- name: /etc/cron.d/apt-update
+  template:
+    src: "{{ role_path }}/templates/etc_cron.d_apt-update"
+    dest: "/etc/cron.d/apt-update"
+    owner: root
+    group: root
+    mode: 0640
+
+
+# remove old and unused kernels automatically
+- name: /etc/cron.d/purge-old-kernels
+  template:
+    src: "{{ role_path }}/templates/etc_cron.d_purge-old-kernels"
+    dest: "/etc/cron.d/purge-old-kernels"
+    owner: root
+    group: root
+    mode: 0640
+
+
+# update OS automatically
+- name: /etc/apt/apt.conf.d/20auto-upgrades
+  lineinfile:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: "{{ item.state }}"
+    create: yes
+  with_items:
+    - { regexp: '^#? *APT::Periodic::Update-Package-Lists', line: 'APT::Periodic::Update-Package-Lists "1";', state: present }
+    - { regexp: '^#? *APT::Periodic::Unattended-Upgrade', line: 'APT::Periodic::Unattended-Upgrade "1";', state: present }
+    - { regexp: '^#? *APT::Periodic::Download-Upgradeable-Packages', line: 'APT::Periodic::Download-Upgradeable-Packages "1";', state: present }
+    - { regexp: '^#? *APT::Periodic::AutocleanInterval', line: 'APT::Periodic::AutocleanInterval "3";', state: present }
+
+
+- name: /etc/apt/apt.conf.d/52unattended-upgrades
+  template:
+    src: "{{ role_path }}/templates/52unattended-upgrades"
+    dest: "/etc/apt/apt.conf.d/52unattended-upgrades"
+    owner: root
+    group: root
+    mode: 0644
+
+
+# configure Postfix
+- name: /etc/postfix/main.cf
+  lineinfile:
+    dest: /etc/postfix/main.cf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: "{{ item.state }}"
+    create: yes
+  with_items:
+    - { regexp: '^#? *myhostname', line: 'myhostname = {{ hostname }}.{{ domainname }}', state: present }
+    - { regexp: '^#? *mydestination', line: 'mydestination = $myhostname, {{ hostname }}, {{ hostname }}.{{ domainname }}, localhost, localhost.localdomain', state: present }
+    - { regexp: '^#? *relayhost', line: 'relayhost = {{ mail_relay_host }}', state: present }
+    - { regexp: '^#? *myorigin', line: 'myorigin = {{ hostname }}.{{ domainname }}', state: present }
+    - { regexp: '^#? *inet_interfaces', line: 'inet_interfaces = loopback-only', state: present }
+  notify:
+    - reload Postfix
+  when: mail_relay_host is defined
+
+
+# add some extras for the commandline
+- name: /etc/profile.d/ads.sh
+  template:
+    src: "{{ role_path }}/templates/etc_profile.d_ads.sh"
+    dest: "/etc/profile.d/ads.sh"
+    owner: root
+    group: root
+    mode: 0755
+
+
+- name: does /root/.bashrc exist
+  stat: path=/root/.bashrc
+  register: root_bashrc
+
+
+# remove HISTSIZE and HISTFILESIZE lines
+- name: HISTSIZE / HISTFILESIZE in /root/.bashrc
+  lineinfile:
+    dest: /root/.bashrc
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: "{{ item.state }}"
+  with_items:
+    - { regexp: '^HISTSIZE', line: '', state: absent }
+    - { regexp: '^HISTFILESIZE', line: '', state: absent }
+  when: root_bashrc.stat.exists == True
+
+
+- name: does /home/<user>/.bashrc exist
+  stat: path=/home/{{ ansible_ssh_user }}/.bashrc
+  register: home_user_bashrc
+
+
+# remove HISTSIZE and HISTFILESIZE lines
+- name: HISTSIZE / HISTFILESIZE in /home/<user>/.bashrc
+  lineinfile:
+    dest: /home/{{ ansible_ssh_user }}/.bashrc
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: "{{ item.state }}"
+  with_items:
+    - { regexp: '^HISTSIZE', line: '', state: absent }
+    - { regexp: '^HISTFILESIZE', line: '', state: absent }
+  when: home_user_bashrc.stat.exists == True
+
+
+#- meta: flush_handlers
+
+
+#- name: stop here
+#  fail: msg="stop here"
+
+# reboot system, if required
+- name: Reboot required (Debian)
+  shell: ( /bin/sleep 5 ; /sbin/shutdown -r now "Ansible updates triggered" ) &
+  args:
+    removes: /var/run/reboot-required
+  async: 30
+  poll: 0
+  ignore_errors: true
+  notify:
+    - waiting for server to come back after restart
+
+
+- meta: flush_handlers

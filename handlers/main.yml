@@ -1,0 +1,39 @@
+---
+
+# handlers are always executed in the order in which they are written in the handlers list/file
+
+- name: rebuild locales database
+  command: "{{ item }}"
+  with_items:
+    - dpkg-reconfigure locales -f noninteractive
+    - /usr/sbin/locale-gen
+
+
+- name: reload sysctl.conf
+  shell: /sbin/sysctl -p
+
+
+- name: reload Postfix
+  service: name=postfix state=reloaded
+
+
+- name: restart system
+  shell: ( /bin/sleep 5 ; shutdown -r now "Ansible updates triggered" ) &
+  async: 30
+  poll: 0
+  ignore_errors: true
+
+
+- name: wait for server to come back
+  local_action: wait_for host={{ inventory_hostname }} port=22 state=started delay=20 timeout=90
+  become: no
+  # only wait if this is a physical host
+  when: lxd_name is not defined
+  listen: "waiting for server to come back after restart"
+
+
+- name: wait for container reboot
+  pause: seconds=30
+  when: lxd_name is defined
+  listen: "waiting for server to come back after restart"
+
