@@ -37,3 +37,8 @@
   when: lxd_name is defined
   listen: "waiting for server to come back after restart"
 
+
+- name: restart yum-cron
+  service:
+    name: yum-cron
+    state: restarted

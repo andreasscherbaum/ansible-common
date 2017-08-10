@@ -83,6 +83,14 @@
     - m4
 
 
+- name: yum-cron package
+  yum: name={{ item }} state=present
+  with_items:
+    - yum-cron
+  notify:
+    - restart yum-cron
+
+
 # add some extras for the commandline
 - name: /etc/profile.d/ads.sh
   template:
@@ -134,6 +142,49 @@
 #- name: install own version of 'needs-restarting'
 #  copy: src=needs-restarting.py dest=/root/needs-restarting.py mode=0700
 #  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+
+# retrieve /etc/resolv.conf content
+- name: /etc/resolv.conf content
+  shell: cat /etc/resolv.conf
+  register: resolv_conf
+  changed_when: false
+
+
+# replace /etc/resolv.conf if this is the standard file from Hetzner
+- name: /etc/resolv.conf replacement
+  copy:
+    src: "{{ role_path }}/files/resolv.conf"
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: 0644
+  when: resolv_conf.stdout.find('Hetzner') != -1
+
+
+# update OS automatically
+- name: /etc/yum/yum-cron.conf
+  lineinfile:
+    dest: /etc/yum/yum-cron.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: "{{ item.state }}"
+    create: yes
+  with_items:
+    - { regexp: '^update_cmd', line: 'update_cmd = default', state: present }
+    - { regexp: '^update_messages', line: 'update_messages = yes', state: present }
+    - { regexp: '^download_updates', line: 'download_updates = yes', state: present }
+    - { regexp: '^apply_updates', line: 'apply_updates = yes;', state: present }
+  notify:
+    - restart yum-cron
+
+
+- name: start update service
+  service:
+    name: yum-cron
+    enabled: yes
+  notify:
+    - restart yum-cron
 
 
 - name: install Red Hat version of 'needs-restarting'
