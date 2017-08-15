@@ -343,21 +343,41 @@
 
 
 # configure Postfix
-- name: /etc/postfix/main.cf
-  lineinfile:
-    dest: /etc/postfix/main.cf
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
-    state: "{{ item.state }}"
-    create: yes
-  with_items:
-    - { regexp: '^#? *myhostname', line: 'myhostname = {{ hostname }}.{{ domainname }}', state: present }
-    - { regexp: '^#? *mydestination', line: 'mydestination = $myhostname, {{ hostname }}, {{ hostname }}.{{ domainname }}, localhost, localhost.localdomain', state: present }
-    - { regexp: '^#? *relayhost', line: 'relayhost = {{ mail_relay_host }}', state: present }
-    - { regexp: '^#? *myorigin', line: 'myorigin = {{ hostname }}.{{ domainname }}', state: present }
-    - { regexp: '^#? *inet_interfaces', line: 'inet_interfaces = loopback-only', state: present }
-  notify:
-    - reload Postfix
+- block:
+  - name: /etc/postfix/main.cf
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: yes
+    with_items:
+      - { regexp: '^#? *myhostname', line: 'myhostname = {{ hostname }}.{{ domainname }}', state: present }
+      - { regexp: '^#? *mydestination', line: 'mydestination = $myhostname, {{ hostname }}, {{ hostname }}.{{ domainname }}, localhost, localhost.localdomain', state: present }
+      - { regexp: '^#? *relayhost', line: 'relayhost = {{ mail_relay_host }}', state: present }
+      - { regexp: '^#? *myorigin', line: 'myorigin = {{ hostname }}.{{ domainname }}', state: present }
+      - { regexp: '^#? *inet_interfaces', line: 'inet_interfaces = loopback-only', state: present }
+    notify:
+      - reload Postfix
+    when: domainname is defined
+
+  - name: /etc/postfix/main.cf
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: yes
+    with_items:
+      - { regexp: '^#? *myhostname', line: 'myhostname = {{ hostname }}', state: present }
+      - { regexp: '^#? *mydestination', line: 'mydestination = $myhostname, {{ hostname }}, localhost, localhost.localdomain', state: present }
+      - { regexp: '^#? *relayhost', line: 'relayhost = {{ mail_relay_host }}', state: present }
+      - { regexp: '^#? *myorigin', line: 'myorigin = {{ hostname }}', state: present }
+      - { regexp: '^#? *inet_interfaces', line: 'inet_interfaces = loopback-only', state: present }
+    notify:
+      - reload Postfix
+    when: domainname is not defined
+
   when: mail_relay_host is defined
 
 
