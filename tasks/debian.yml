@@ -50,12 +50,22 @@
 
 
 # add IP address and new hostname
-- name: /etc/hosts IPv4
-  lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}\t{{ hostname }} {{ hostname }}.{{ domainname }}' state=present
-  #when: hostvars[inventory_hostname]['ansible_default_ipv4']['address'] is defined
-- name: /etc/hosts IPv6
-  lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}\t{{ hostname }} {{ hostname }}.{{ domainname }}' state=present
-  #when: hostvars[inventory_hostname]['ansible_default_ipv6']['address'] is defined
+- block:
+  - name: /etc/hosts IPv4 (hostname)
+    lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}\t{{ hostname }}' state=present
+    when: domainname is not defined
+  - name: /etc/hosts IPv4 (hostname + domainname)
+    lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}\t{{ hostname }} {{ hostname }}.{{ domainname }}' state=present
+    when: domainname is defined
+  when: hostvars[inventory_hostname]['ansible_default_ipv4']['address'] is defined
+- block:
+  - name: /etc/hosts IPv6 (hostname)
+    lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}\t{{ hostname }}' state=present
+    when: domainname is not defined
+  - name: /etc/hosts IPv6 (hostname + domainname)
+    lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}\t{{ hostname }} {{ hostname }}.{{ domainname }}' state=present
+    when: domainname is defined
+  when: hostvars[inventory_hostname]['ansible_default_ipv6']['address'] is defined
 
 
 # generate ssh keys for root user
