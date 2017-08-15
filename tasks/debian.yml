@@ -134,6 +134,28 @@
     - rebuild locales database
 
 
+# retrieve /etc/locale.gen content
+- name: /etc/locale.gen content
+  shell: cat /etc/locale.gen
+  register: locale_gen
+  changed_when: false
+
+
+# default /etc/locale.gen comes with two lines containing "en_US.UTF-8"
+# one is commented out, one not
+# this is trouble later on, remove one line
+- name: remove multiple en_US.UTF-8 from /etc/locale.gen
+  lineinfile:
+    dest: /etc/locale.gen
+    regexp: "{{ item.regexp }}"
+    state: "{{ item.state }}"
+  with_items:
+    - { regexp: '^# en_US.UTF-8 UTF-8', state: absent }
+  when: locale_gen.stdout.find('\nen_US.UTF-8') != -1 and locale_gen.stdout.find('\n# en_US.UTF-8') != -1
+  notify:
+    - rebuild locales database
+
+
 # add desired locale settings
 - name: /etc/locale.gen
   lineinfile:
