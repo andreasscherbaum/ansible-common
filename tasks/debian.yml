@@ -44,6 +44,12 @@
   when: lxd_name is defined
 
 
+- name: dbus package
+  apt: name={{ item }} state=present
+  with_items:
+    - dbus
+
+
 # set hostname based on submitted name
 - name: Hostname
   hostname: name={{ hostname }}
