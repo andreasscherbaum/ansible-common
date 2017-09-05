@@ -118,6 +118,7 @@
     - curl
     - byobu
     - postfix
+    - cron
 
 
 # install basic packages (Ubuntu only)
