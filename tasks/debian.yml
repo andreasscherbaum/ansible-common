@@ -84,6 +84,43 @@
   lineinfile: dest=/etc/gai.conf regexp='^precedence ::ffff:0:0/96  100' line='precedence ::ffff:0:0/96  100' state=present
 
 
+# retrieve /etc/apt/sources.list
+- name: /etc/apt/sources.list content
+  shell: cat /etc/apt/sources.list
+  register: resolv_conf
+  changed_when: false
+
+
+# manitu does not add the universe repository to /etc/resolv.conf
+- block:
+  - name: distribution name
+    shell: lsb_release -sc
+    register: distribution_name
+    changed_when: false
+
+
+  - name: add universe repo to /etc/apt/sources.list
+    lineinfile:
+      dest: /etc/apt/sources.list
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+    with_items:
+      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }} ', line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }} main multiverse universe restricted', state: present }
+      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-updates ', line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-updates main multiverse universe restricted', state: present }
+      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-security ', line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-security main multiverse universe restricted', state: present }
+      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-backports ', line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-backports main multiverse universe restricted', state: present }
+    register: sources_list_universe
+
+
+  - name: Update apt cache
+    apt: update_cache=yes
+    when: sources_list_universe.changed
+    changed_when: false
+
+  when: resolv_conf.stdout.find('mirror.manitu.net') != -1
+
+
 # install basic packages (Debian/Ubuntu)
 - name: basic packages
   apt: name={{ item }} state=present
