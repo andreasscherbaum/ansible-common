@@ -30,6 +30,43 @@
 #  debug: msg="{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
 
 
+# see if this is a manitu host
+- name: check for manitu hosting
+  stat:
+    path: /etc/udev/rules.d/69-manitu-net.rules
+  register: manitu_hosting
+
+
+- block:
+  # rename the eth0 interface (originally it's 'ifext')
+  - name: rename ifext interface to eth0 (69-manitu-net.rules)
+    replace:
+      dest: /etc/udev/rules.d/69-manitu-net.rules
+      regexp: "{{ item.regexp }}"
+      replace: "{{ item.replace }}"
+    with_items:
+      - { regexp: 'ifext', replace: 'eth0' }
+      - { regexp: ' ATTR{dev_id}=="[^"]+", ', replace: '' }
+      - { regexp: 'ATTR{type}=="[^"]+", ', replace: '' }
+      - { regexp: 'KERNEL=="[^"]+", ', replace: '' }
+    notify:
+      - restart system
+      - waiting for server to come back after restart
+
+
+  - name: rename ifext interface to eth0 (interfaces)
+    replace:
+      dest: /etc/network/interfaces
+      regexp: 'ifext'
+      replace: 'eth0'
+    notify:
+      - restart system
+      - waiting for server to come back after restart
+
+  - meta: flush_handlers
+
+  when: manitu_hosting.stat.exists == True
+
 
 - block:
 
