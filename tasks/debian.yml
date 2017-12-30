@@ -136,7 +136,7 @@
     changed_when: false
 
 
-  - name: add universe repo to /etc/apt/sources.list
+  - name: add universe repo to /etc/apt/sources.list (on manitu hosts)
     lineinfile:
       dest: /etc/apt/sources.list
       regexp: "{{ item.regexp }}"
