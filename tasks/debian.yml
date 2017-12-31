@@ -433,7 +433,6 @@
       state: "{{ item.state }}"
       create: yes
     with_items:
-      - { regexp: '^#? *relayhost', line: 'relayhost = {{ mail_relay_host }}', state: present }
       - { regexp: '^#? *inet_interfaces', line: 'inet_interfaces = loopback-only', state: present }
     notify:
       - reload Postfix
@@ -471,7 +470,31 @@
     when: domainname is not defined
 
 
-  when: mail_relay_host is defined
+  - name: /etc/postfix/main.cf
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: yes
+    with_items:
+      - { regexp: '^#? *relayhost', line: 'relayhost = {{ mail_relay_host }}', state: present }
+    notify:
+      - reload Postfix
+    when: mail_relay_host is defined
+
+
+  - name: /etc/postfix/main.cf
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      state: "{{ item.state }}"
+      create: yes
+    with_items:
+      - { regexp: '^? *relayhost', state: absent }
+    notify:
+      - reload Postfix
+    when: mail_relay_host is not defined
 
 
 # add some extras for the commandline
