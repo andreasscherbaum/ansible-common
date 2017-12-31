@@ -431,7 +431,7 @@
       regexp: "{{ item.regexp }}"
       line: "{{ item.line }}"
       state: "{{ item.state }}"
-      create: yes
+      create: no
     with_items:
       - { regexp: '^#? *inet_interfaces', line: 'inet_interfaces = loopback-only', state: present }
     notify:
@@ -444,7 +444,7 @@
       regexp: "{{ item.regexp }}"
       line: "{{ item.line }}"
       state: "{{ item.state }}"
-      create: yes
+      create: no
     with_items:
       - { regexp: '^#? *myhostname', line: 'myhostname = {{ hostname }}.{{ domainname }}', state: present }
       - { regexp: '^#? *mydestination', line: 'mydestination = $myhostname, {{ hostname }}, {{ hostname }}.{{ domainname }}, localhost, localhost.localdomain', state: present }
@@ -460,7 +460,7 @@
       regexp: "{{ item.regexp }}"
       line: "{{ item.line }}"
       state: "{{ item.state }}"
-      create: yes
+      create: no
     with_items:
       - { regexp: '^#? *myhostname', line: 'myhostname = {{ hostname }}', state: present }
       - { regexp: '^#? *mydestination', line: 'mydestination = $myhostname, {{ hostname }}, localhost, localhost.localdomain', state: present }
@@ -476,7 +476,7 @@
       regexp: "{{ item.regexp }}"
       line: "{{ item.line }}"
       state: "{{ item.state }}"
-      create: yes
+      create: no
     with_items:
       - { regexp: '^#? *relayhost', line: 'relayhost = {{ mail_relay_host }}', state: present }
     notify:
@@ -489,7 +489,7 @@
       dest: /etc/postfix/main.cf
       regexp: "{{ item.regexp }}"
       state: "{{ item.state }}"
-      create: yes
+      create: no
     with_items:
       - { regexp: '^? *relayhost', state: absent }
     notify:
