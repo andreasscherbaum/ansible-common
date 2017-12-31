@@ -13,6 +13,12 @@
   shell: /sbin/sysctl -p
 
 
+- name: rebuild Postfix aliases
+  command: "{{ item }}"
+  with_items:
+    - newaliases
+
+
 - name: reload Postfix
   service: name=postfix state=reloaded
 

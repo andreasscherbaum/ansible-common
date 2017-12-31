@@ -496,6 +496,22 @@
       - reload Postfix
     when: mail_relay_host is not defined
 
+
+  # will not remove the alias once {{ serveradmin_email }} is disabled
+  - name: /etc/aliases
+    lineinfile:
+      dest: /etc/aliases
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    with_items:
+      - { regexp: '^root:', line: 'root: {{ serveradmin_email }}', state: present }
+    notify:
+      - rebuild Postfix aliases
+      - reload Postfix
+    when: serveradmin_email is defined
+
   when: configure_postfix == True
 
 
