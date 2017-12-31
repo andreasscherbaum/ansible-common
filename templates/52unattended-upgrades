@@ -6,4 +6,4 @@ Unattended-Upgrade::Allowed-Origins {
 //      "${distro_id}:${distro_codename}-backports";
 };
 
-Unattended-Upgrade::Mail "srv@woxiland.de";
+Unattended-Upgrade::Mail "{{ serveradmin_email }}";
