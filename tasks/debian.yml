@@ -491,7 +491,7 @@
       state: "{{ item.state }}"
       create: no
     with_items:
-      - { regexp: '^? *relayhost', state: absent }
+      - { regexp: '^ *relayhost', state: absent }
     notify:
       - reload Postfix
     when: mail_relay_host is not defined
