@@ -496,6 +496,8 @@
       - reload Postfix
     when: mail_relay_host is not defined
 
+  when: configure_postfix == True
+
 
 # add some extras for the commandline
 - name: /etc/profile.d/ads.sh

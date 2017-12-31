@@ -1,0 +1,6 @@
+---
+
+# Default values
+
+# set this to False (in the hosts.cfg, as example) if Postfix should not be configured
+configure_postfix: True
