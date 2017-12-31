@@ -1,1 +1,1 @@
-0 4 * * *   root   apt-get update > /dev/null 2> /dev/null
+0 4 * * *   root   PATH=/usr/sbin:/usr/bin:/sbin:/bin apt-get update > /dev/null 2> /dev/null
