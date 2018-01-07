@@ -561,6 +561,15 @@
   when: home_user_bashrc.stat.exists == True
 
 
+# deinstall Software RAID packages (Debian/Ubuntu)
+# not required in LXD containers
+- name: deinstal packages
+  apt: name={{ item }} state=absent
+  with_items:
+    - mdadm
+  when: lxd_name is defined
+
+
 #- meta: flush_handlers
 
 
