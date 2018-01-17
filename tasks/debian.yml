@@ -563,7 +563,7 @@
 
 # deinstall Software RAID packages (Debian/Ubuntu)
 # not required in LXD containers
-- name: deinstal packages
+- name: deinstall packages
   apt: name={{ item }} state=absent
   with_items:
     - mdadm
