@@ -584,6 +584,7 @@
   async: 30
   poll: 0
   ignore_errors: true
+  changed_when: false
   notify:
     - waiting for server to come back after restart
 
