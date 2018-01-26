@@ -1,2 +1,2 @@
-0 5 * * *   root   PATH=/usr/sbin:/usr/bin:/sbin:/bin purge-old-kernels -qy > /dev/null 2> /dev/null
-#0 5 * * *   root   PATH=/usr/sbin:/usr/bin:/sbin:/bin purge-old-kernels -qy
+0 5 * * *   root   PATH=/usr/sbin:/usr/bin:/sbin:/bin apt-get -qy autoremove  > /dev/null 2> /dev/null ; purge-old-kernels -qy > /dev/null 2> /dev/null
+#0 5 * * *   root   PATH=/usr/sbin:/usr/bin:/sbin:/bin apt-get -qy autoremove ; purge-old-kernels -qy
