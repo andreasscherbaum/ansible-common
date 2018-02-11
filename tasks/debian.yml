@@ -577,14 +577,17 @@
 #  fail: msg="stop here"
 
 # reboot system, if required
+- name: does /var/run/reboot-required exist
+  stat: path=/var/run/reboot-required
+  register: var_run_reboot_required
+
+
 - name: Reboot required (Debian)
   shell: ( /bin/sleep 5 ; /sbin/shutdown -r now "Ansible updates triggered" ) &
-  args:
-    removes: /var/run/reboot-required
   async: 30
   poll: 0
   ignore_errors: true
-  changed_when: false
+  when: var_run_reboot_required.stat.exists == True
   notify:
     - waiting for server to come back after restart
 
