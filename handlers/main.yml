@@ -13,6 +13,12 @@
   shell: /sbin/sysctl -p
 
 
+- name: restart systemd-resolved
+  service:
+    name: systemd-resolved
+    state: restarted
+
+
 - name: rebuild Postfix aliases
   command: "{{ item }}"
   with_items:

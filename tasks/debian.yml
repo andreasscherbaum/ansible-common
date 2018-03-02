@@ -121,6 +121,13 @@
   lineinfile: dest=/etc/gai.conf regexp='^precedence ::ffff:0:0/96  100' line='precedence ::ffff:0:0/96  100' state=present
 
 
+# disable Link-Local Multicast Name Resolution
+- name: disable LLMNR in /etc/systemd/resolved.conf
+  lineinfile: dest=/etc/systemd/resolved.conf regexp='^#? ?LLMNR=' line='LLMNR=no' state=present
+  notify:
+    - restart systemd-resolved
+
+
 # retrieve /etc/apt/sources.list
 - name: /etc/apt/sources.list content
   shell: cat /etc/apt/sources.list
