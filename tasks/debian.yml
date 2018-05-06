@@ -46,7 +46,7 @@
     main_interface: "{{ item }}"
   with_items:
     - "{{ hostvars[inventory_hostname]['ansible_interfaces'] }}"
-  when: item | match("^e[tn]")
+  when: item is match("^e[tn]")
   changed_when: false
 
 
