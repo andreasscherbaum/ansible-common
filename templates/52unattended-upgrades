@@ -1,3 +1,5 @@
+// this file partially overwrites /etc/apt/apt.conf.d/50unattended-upgrades
+
 Unattended-Upgrade::Allowed-Origins {
         "${distro_id}:${distro_codename}";
         "${distro_id}:${distro_codename}-security";
@@ -5,5 +7,11 @@ Unattended-Upgrade::Allowed-Origins {
 //      "${distro_id}:${distro_codename}-proposed";
 //      "${distro_id}:${distro_codename}-backports";
 };
+
+Unattended-Upgrade::MinimalSteps "true";
+Unattended-Upgrade::InstallOnShutdown "false";
+Unattended-Upgrade::MailOnlyOnError "true";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
 
 Unattended-Upgrade::Mail "{{ serveradmin_email }}";
