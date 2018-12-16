@@ -189,6 +189,7 @@
     - byobu
     - postfix
     - cron
+    - unattended-upgrades
 
 
 # install basic packages (Ubuntu only)
