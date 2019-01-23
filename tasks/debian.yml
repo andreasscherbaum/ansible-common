@@ -568,6 +568,25 @@
   when: lxd_name is defined
 
 
+# disable extra information in Ubuntu motd
+- name: does /etc/default/motd-news exist
+  stat:
+    path: /etc/default/motd-news
+  register: etc_default_motd_news
+
+
+- name: disable extra motd
+  lineinfile:
+    dest: /etc/default/motd-news
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: "{{ item.state }}"
+  with_items:
+    - { regexp: '^ENABLED', line: 'ENABLED=0', state: present }
+  when: etc_default_motd_news.stat.exists == True
+
+
+
 #- meta: flush_handlers
 
 
