@@ -260,7 +260,7 @@
 
 # configure timezone database
 - name: tzdata
-  command: "{{ item }}"
+  shell: "{{ item }}"
   with_items:
     - echo tzdata  tzdata/Areas    select  Europe | debconf-set-selections
     - echo tzdata  tzdata/Zones/Europe     select  Berlin | debconf-set-selections
