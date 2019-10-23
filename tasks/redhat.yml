@@ -120,22 +120,34 @@
   when: root_bashrc.stat.exists == True
 
 
+- name: Pre-set login username variable
+  set_fact:
+    login_username: ""
+
+
+- name: Extract login username from environment
+  set_fact:
+    login_username: "{{ ansible_env.SUDO_USER }}"
+  when: ansible_env.SUDO_USER is defined and ansible_env.SUDO_USER|length > 0
+
+
 - name: does /home/<user>/.bashrc exist
-  stat: path=/home/{{ ansible_ssh_user }}/.bashrc
+  stat: path=/home/{{ login_username }}/.bashrc
   register: home_user_bashrc
+  when: login_username|length > 0
 
 
 # remove HISTSIZE and HISTFILESIZE lines
 - name: HISTSIZE / HISTFILESIZE in /home/<user>/.bashrc
   lineinfile:
-    dest: /home/{{ ansible_ssh_user }}/.bashrc
+    dest: /home/{{ login_username }}/.bashrc
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
     state: "{{ item.state }}"
   with_items:
     - { regexp: '^HISTSIZE', line: '', state: absent }
     - { regexp: '^HISTFILESIZE', line: '', state: absent }
-  when: home_user_bashrc.stat.exists == True
+  when: login_username|length > 0 and home_user_bashrc.stat.exists == True
 
 
 ## source: https://github.com/rpm-software-management/yum-utils/blob/master/needs-restarting.py
