@@ -19,7 +19,8 @@
 
 # update package cache - required for any new software installation
 - name: Update apt cache
-  apt: update_cache=yes
+  apt:
+    update_cache: yes
   changed_when: false
 
 
@@ -44,8 +45,7 @@
   set_fact:
     number_interfaces: "{{ number_interfaces | int + 1 }}"
     main_interface: "{{ item }}"
-  with_items:
-    - "{{ hostvars[inventory_hostname]['ansible_interfaces'] }}"
+  loop: "{{ hostvars[inventory_hostname]['ansible_interfaces'] }}"
   when: item is match("^e[tn]")
   changed_when: false
 
@@ -71,14 +71,16 @@
 
 
 - name: dbus package
-  apt: name={{ item }} state=present
-  with_items:
-    - dbus
+  apt:
+    name:
+      - dbus
+    state: present
 
 
 # set hostname based on submitted name
 - name: Hostname
-  hostname: name={{ hostname }}
+  hostname:
+    name: "{{ hostname }}"
 
 
 # add IP address and new hostname
@@ -138,7 +140,7 @@
       regexp: "{{ item.regexp }}"
       line: "{{ item.line }}"
       state: "{{ item.state }}"
-    with_items:
+    loop:
       - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }} ', line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }} main multiverse universe restricted', state: present }
       - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-updates ', line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-updates main multiverse universe restricted', state: present }
       - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-security ', line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-security main multiverse universe restricted', state: present }
@@ -147,7 +149,8 @@
 
 
   - name: Update apt cache
-    apt: update_cache=yes
+    apt:
+      update_cache: yes
     when: sources_list_universe.changed
     changed_when: false
 
@@ -155,49 +158,59 @@
 
 
 # install basic packages (Debian/Ubuntu)
-- name: basic packages
-  apt: name={{ item }} state=present
-  with_items:
-    - vim
-    - nano
-    - screen
-    - man-db
-    - psmisc
-    - bind9-host
-    - rsync
-    - unison
-    - wget
-    - mutt
-    - lynx
-    - debconf-utils
-    - unzip
-    - debconf-utils
-    - make
-    - git
-    - bzip2
-    - zip
-    - unzip
-    - python3
-    - python3-dev
-    - python-yaml
-    - python3-yaml
-    - python-pip
-    - python3-pip
-    - python-virtualenv
-    - python3-virtualenv
-    - curl
-    - byobu
-    - postfix
-    - cron
-    - unattended-upgrades
+- name: basic packages (all versions)
+  apt:
+    name:
+      - vim
+      - nano
+      - screen
+      - man-db
+      - psmisc
+      - bind9-host
+      - rsync
+      - unison
+      - wget
+      - mutt
+      - lynx
+      - debconf-utils
+      - unzip
+      - debconf-utils
+      - make
+      - git
+      - bzip2
+      - zip
+      - unzip
+      - python3
+      - python3-dev
+      - python3-yaml
+      - python3-pip
+      - python3-virtualenv
+      - curl
+      - byobu
+      - postfix
+      - cron
+      - unattended-upgrades
+      - aptitude
+    state: present
+
+
+- name: basic packages (older Ubuntu versions - Python 2)
+  apt:
+    name:
+      - python-yaml
+      - python-pip
+      - python-virtualenv
+    state: present
+  when: ansible_distribution == "Ubuntu" and ansible_distribution_version is version_compare('19.10', '<=')
 
 
 # install basic packages (Ubuntu only)
 - name: basic packages (Ubuntu)
-  apt: name={{ item }} state=present
-  with_items:
-    - update-manager-core
-    - software-properties-common
+  apt:
+    name:
+      - update-manager-core
+      - software-properties-common
+    state: present
   when: ansible_distribution == 'Ubuntu'
 
 
@@ -227,7 +240,7 @@
     dest: /etc/locale.gen
     regexp: "{{ item.regexp }}"
     state: "{{ item.state }}"
-  with_items:
+  loop:
     - { regexp: '^# en_US.UTF-8 UTF-8', state: absent }
   when: locale_gen.stdout.find('\nen_US.UTF-8') != -1 and locale_gen.stdout.find('\n# en_US.UTF-8') != -1
   notify:
@@ -241,7 +254,7 @@
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
     state: "{{ item.state }}"
-  with_items:
+  loop:
     - { regexp: '^#? ?de_DE ISO-8859-1', line: 'de_DE ISO-8859-1', state: present }
     - { regexp: '^#? ?de_DE.UTF-8 UTF-8', line: 'de_DE.UTF-8 UTF-8', state: present }
     - { regexp: '^#? ?de_DE@euro ISO-8859-15', line: 'de_DE@euro ISO-8859-15', state: present }
@@ -261,7 +274,7 @@
 # configure timezone database
 - name: tzdata
   shell: "{{ item }}"
-  with_items:
+  loop:
     - echo tzdata  tzdata/Areas    select  Europe | debconf-set-selections
     - echo tzdata  tzdata/Zones/Europe     select  Berlin | debconf-set-selections
     - echo tzdata  tzdata/Zones/Etc        select  UTC | debconf-set-selections
@@ -275,7 +288,7 @@
 ## add extra repositories
 #- name: software-properties-common
 #  shell: "{{ item }}"
-#  with_items:
+#  loop:
 #    - add-apt-repository "deb http://archive.ubuntu.com/ubuntu $(lsb_release -sc) main universe restricted multiverse"
 #    - add-apt-repository "deb http://archive.canonical.com/ubuntu $(lsb_release -sc) partner"
 #    - touch /root/.software-properties-common-updated
@@ -297,7 +310,7 @@
     state: present
     update_cache: no
     filename: software-properties-common
-  with_items:
+  loop:
     - deb http://archive.ubuntu.com/ubuntu {{ lsb_release.stdout }} main universe restricted multiverse
     - deb http://archive.canonical.com/ubuntu {{ lsb_release.stdout }} partner
   when: ansible_distribution == 'Ubuntu'
@@ -311,7 +324,7 @@
     line: "{{ item.line }}"
     state: "{{ item.state }}"
     create: yes
-  with_items:
+  loop:
     - { regexp: '^#? *dummy', line: '#dummy', state: present }
     - { regexp: '^#? *loop ', line: 'loop max_loop=64', state: present }
     - { regexp: '^#? *ipt_recent ', line: 'ipt_recent ip_list_tot=5000 ip_pkt_list_tot=200', state: present }
@@ -346,7 +359,7 @@
     line: "{{ item.line }}"
     state: "{{ item.state }}"
     create: yes
-  with_items:
+  loop:
     - { regexp: '^#? *net.ipv4.conf.all.accept_redirects', line: 'net.ipv4.conf.all.accept_redirects = 0', state: present }
     - { regexp: '^#? *net.ipv4.conf.all.arp_announce', line: 'net.ipv4.conf.all.arp_announce = 1', state: present }
     - { regexp: '^#? *net.ipv4.conf.all.forwarding', line: 'net.ipv4.conf.all.forwarding = 1', state: present }
@@ -405,7 +418,7 @@
     line: "{{ item.line }}"
     state: "{{ item.state }}"
     create: yes
-  with_items:
+  loop:
     - { regexp: '^#? *APT::Periodic::Update-Package-Lists', line: 'APT::Periodic::Update-Package-Lists "1";', state: present }
     - { regexp: '^#? *APT::Periodic::Unattended-Upgrade', line: 'APT::Periodic::Unattended-Upgrade "1";', state: present }
     - { regexp: '^#? *APT::Periodic::Download-Upgradeable-Packages', line: 'APT::Periodic::Download-Upgradeable-Packages "1";', state: present }
@@ -430,7 +443,7 @@
       line: "{{ item.line }}"
       state: "{{ item.state }}"
       create: no
-    with_items:
+    loop:
       - { regexp: '^#? *inet_interfaces', line: 'inet_interfaces = loopback-only', state: present }
     notify:
       - reload Postfix
@@ -443,7 +456,7 @@
       line: "{{ item.line }}"
       state: "{{ item.state }}"
       create: no
-    with_items:
+    loop:
       - { regexp: '^#? *myhostname', line: 'myhostname = {{ hostname }}.{{ domainname }}', state: present }
       - { regexp: '^#? *mydestination', line: 'mydestination = $myhostname, {{ hostname }}, {{ hostname }}.{{ domainname }}, localhost, localhost.localdomain', state: present }
       - { regexp: '^#? *myorigin', line: 'myorigin = {{ hostname }}.{{ domainname }}', state: present }
@@ -459,7 +472,7 @@
       line: "{{ item.line }}"
       state: "{{ item.state }}"
       create: no
-    with_items:
+    loop:
       - { regexp: '^#? *myhostname', line: 'myhostname = {{ hostname }}', state: present }
       - { regexp: '^#? *mydestination', line: 'mydestination = $myhostname, {{ hostname }}, localhost, localhost.localdomain', state: present }
       - { regexp: '^#? *myorigin', line: 'myorigin = {{ hostname }}', state: present }
@@ -475,7 +488,7 @@
       line: "{{ item.line }}"
       state: "{{ item.state }}"
       create: no
-    with_items:
+    loop:
       - { regexp: '^#? *relayhost', line: 'relayhost = {{ mail_relay_host }}', state: present }
     notify:
       - reload Postfix
@@ -488,7 +501,7 @@
       regexp: "{{ item.regexp }}"
       state: "{{ item.state }}"
       create: no
-    with_items:
+    loop:
       - { regexp: '^ *relayhost', state: absent }
     notify:
       - reload Postfix
@@ -503,7 +516,7 @@
       line: "{{ item.line }}"
       state: "{{ item.state }}"
       create: no
-    with_items:
+    loop:
       - { regexp: '^root:', line: 'root: {{ serveradmin_email }}', state: present }
     notify:
       - rebuild Postfix aliases
@@ -535,7 +548,7 @@
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
     state: "{{ item.state }}"
-  with_items:
+  loop:
     - { regexp: '^HISTSIZE', line: '', state: absent }
     - { regexp: '^HISTFILESIZE', line: '', state: absent }
   when: root_bashrc.stat.exists == True
@@ -565,7 +578,7 @@
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
     state: "{{ item.state }}"
-  with_items:
+  loop:
     - { regexp: '^HISTSIZE', line: '', state: absent }
     - { regexp: '^HISTFILESIZE', line: '', state: absent }
   when: login_username|length > 0 and home_user_bashrc.stat.exists == True
@@ -574,9 +587,10 @@
 # deinstall Software RAID packages (Debian/Ubuntu)
 # not required in LXD containers
 - name: deinstall packages
-  apt: name={{ item }} state=absent
-  with_items:
-    - mdadm
+  apt:
+    name:
+      - mdadm
+    state: absent
   when: lxd_name is defined
 
 
@@ -593,7 +607,7 @@
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
     state: "{{ item.state }}"
-  with_items:
+  loop:
     - { regexp: '^ENABLED', line: 'ENABLED=0', state: present }
   when: etc_default_motd_news.stat.exists == True
 

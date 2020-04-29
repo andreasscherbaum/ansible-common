@@ -39,7 +39,10 @@
 
 # update package cache - required for any new software installation
 - name: Update yum cache
-  yum: name=* state=latest update_cache=yes
+  yum:
+    name: "*"
+    state: latest
+    update_cache: yes
 
 
 ## update packages to latest version
@@ -63,30 +66,32 @@
 
 
 - name: basic packages
-  yum: name={{ item }} state=present
-  with_items:
-    - vim-enhanced
-    - nano
-    - screen
-    - man-db
-    - psmisc
-    - bind-utils
-    - rsync
-    - wget
-    - mutt
-    - lynx
-    - yum-utils
-    - unzip
-    - pexpect
-    - net-tools
-    - ed
-    - m4
+  yum:
+    name:
+      - vim-enhanced
+      - nano
+      - screen
+      - man-db
+      - psmisc
+      - bind-utils
+      - rsync
+      - wget
+      - mutt
+      - lynx
+      - yum-utils
+      - unzip
+      - pexpect
+      - net-tools
+      - ed
+      - m4
+    state: present
 
 
 - name: yum-cron package
-  yum: name={{ item }} state=present
-  with_items:
-    - yum-cron
+  yum:
+    name:
+      - yum-cron
+    state: present
   notify:
     - restart yum-cron
 
@@ -114,7 +119,7 @@
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
     state: "{{ item.state }}"
-  with_items:
+  loop:
     - { regexp: '^HISTSIZE', line: '', state: absent }
     - { regexp: '^HISTFILESIZE', line: '', state: absent }
   when: root_bashrc.stat.exists == True
@@ -144,7 +149,7 @@
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
     state: "{{ item.state }}"
-  with_items:
+  loop:
     - { regexp: '^HISTSIZE', line: '', state: absent }
     - { regexp: '^HISTFILESIZE', line: '', state: absent }
   when: login_username|length > 0 and home_user_bashrc.stat.exists == True
@@ -182,7 +187,7 @@
     line: "{{ item.line }}"
     state: "{{ item.state }}"
     create: yes
-  with_items:
+  loop:
     - { regexp: '^update_cmd', line: 'update_cmd = default', state: present }
     - { regexp: '^update_messages', line: 'update_messages = yes', state: present }
     - { regexp: '^download_updates', line: 'download_updates = yes', state: present }
