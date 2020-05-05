@@ -46,7 +46,7 @@
     number_interfaces: "{{ number_interfaces | int + 1 }}"
     main_interface: "{{ item }}"
   loop: "{{ hostvars[inventory_hostname]['ansible_interfaces'] }}"
-  when: item is match("^e[tn]")
+  when: item is match("^e[tn]") or item is match("^ifext")
   changed_when: false
 
 
@@ -55,6 +55,11 @@
 - name: Make sure only one external interface is available
   fail: msg="Too many interfaces on this host!"
   when: number_interfaces|int > 1
+
+
+- name: Make sure one external interface is available
+  fail: msg="No interface found on this host!"
+  when: number_interfaces|int == 0
 
 
 - block:
