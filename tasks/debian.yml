@@ -2,18 +2,21 @@
 
 # fail if it's not a Debian based system
 - name: Check OS (common)
-  fail: msg="Not a Debian based system!"
+  fail:
+    msg: "Not a Debian based system!"
   when: ansible_distribution != 'Debian' and ansible_distribution != 'Ubuntu'
 
 
 # reject the play if systemd is not used
 - name: check if systemd is used (1)
-  stat: path=/run/systemd/system
+  stat:
+    path: /run/systemd/system
   register: systemd_exists
 
 
 - name: check if systemd is used (2)
-  fail: msg="systemd is not installed"
+  fail:
+    msg: "systemd is not installed"
   when: systemd_exists.stat.exists != True
 
 
@@ -53,19 +56,25 @@
 #- debug: msg="Number interfaces {{ number_interfaces }}  {{ main_interface }}"
 
 - name: Make sure only one external interface is available
-  fail: msg="Too many interfaces on this host!"
+  fail:
+    msg: "Too many interfaces on this host!"
   when: number_interfaces|int > 1
 
 
 - name: Make sure one external interface is available
-  fail: msg="No interface found on this host!"
+  fail:
+    msg: "No interface found on this host!"
   when: number_interfaces|int == 0
 
 
 - block:
 
   - name: disable hostnamed private networks
-    lineinfile: dest=/lib/systemd/system/systemd-hostnamed.service regexp='^PrivateNetwork=' line='PrivateNetwork=no' state=present
+    lineinfile:
+      dest: "/lib/systemd/system/systemd-hostnamed.service"
+      regexp: '^PrivateNetwork='
+      line: 'PrivateNetwork=no'
+      state: present
     register: hostnamed
 
   - name: restart hostnamed
@@ -91,18 +100,34 @@
 # add IP address and new hostname
 - block:
   - name: /etc/hosts IPv4 (hostname)
-    lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}\t{{ hostname }}' state=present
+    lineinfile:
+      dest: "/etc/hosts"
+      regexp: "^{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}[\t ]"
+      line: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}\t{{ hostname }}"
+      state: present
     when: domainname is not defined
   - name: /etc/hosts IPv4 (hostname + domainname)
-    lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}\t{{ hostname }} {{ hostname }}.{{ domainname }}' state=present
+    lineinfile:
+      dest: "/etc/hosts"
+      regexp: "^{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}[\t ]"
+      line: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}\t{{ hostname }} {{ hostname }}.{{ domainname }}"
+      state: present
     when: domainname is defined
   when: hostvars[inventory_hostname]['ansible_default_ipv4']['address'] is defined
 - block:
   - name: /etc/hosts IPv6 (hostname)
-    lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}\t{{ hostname }}' state=present
+    lineinfile:
+      dest: "/etc/hosts"
+      regexp: "^{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}[\t ]"
+      line: "{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}\t{{ hostname }}"
+      state: present
     when: domainname is not defined
   - name: /etc/hosts IPv6 (hostname + domainname)
-    lineinfile: dest=/etc/hosts regexp='^{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}[\t ]' line='{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}\t{{ hostname }} {{ hostname }}.{{ domainname }}' state=present
+    lineinfile:
+      dest: "/etc/hosts"
+      regexp: "^{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}[\t ]"
+      line: "{{ hostvars[inventory_hostname]['ansible_default_ipv6']['address'] }}\t{{ hostname }} {{ hostname }}.{{ domainname }}"
+      state: present
     when: domainname is defined
   when: hostvars[inventory_hostname]['ansible_default_ipv6']['address'] is defined
 
@@ -114,12 +139,20 @@
 
 # prefer IPv4 connections
 - name: /etc/gai.conf
-  lineinfile: dest=/etc/gai.conf regexp='^precedence ::ffff:0:0/96  100' line='precedence ::ffff:0:0/96  100' state=present
+  lineinfile:
+    dest: "/etc/gai.conf"
+    regexp: '^precedence ::ffff:0:0/96  100'
+    line: 'precedence ::ffff:0:0/96  100'
+    state: present
 
 
 # disable Link-Local Multicast Name Resolution
 - name: disable LLMNR in /etc/systemd/resolved.conf
-  lineinfile: dest=/etc/systemd/resolved.conf regexp='^#? ?LLMNR=' line='LLMNR=no' state=present
+  lineinfile:
+    dest: "/etc/systemd/resolved.conf"
+    regexp: '^#? ?LLMNR='
+    line: 'LLMNR=no'
+    state: present
   notify:
     - restart systemd-resolved
 
@@ -146,10 +179,18 @@
       line: "{{ item.line }}"
       state: "{{ item.state }}"
     loop:
-      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }} ', line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }} main multiverse universe restricted', state: present }
-      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-updates ', line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-updates main multiverse universe restricted', state: present }
-      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-security ', line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-security main multiverse universe restricted', state: present }
-      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-backports ', line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-backports main multiverse universe restricted', state: present }
+      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }} ',
+          line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }} main multiverse universe restricted',
+          state: present }
+      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-updates ',
+          line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-updates main multiverse universe restricted',
+          state: present }
+      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-security ',
+          line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-security main multiverse universe restricted',
+          state: present }
+      - { regexp: '^deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-backports ',
+          line: 'deb http://mirror.manitu.net/ubuntu {{ distribution_name.stdout }}-backports main multiverse universe restricted',
+          state: present }
     register: sources_list_universe
 
 
@@ -571,7 +612,8 @@
 
 
 - name: does /home/<user>/.bashrc exist
-  stat: path=/home/{{ login_username }}/.bashrc
+  stat:
+    path: "/home/{{ login_username }}/.bashrc"
   register: home_user_bashrc
   when: login_username|length > 0
 
@@ -602,13 +644,13 @@
 # disable extra information in Ubuntu motd
 - name: does /etc/default/motd-news exist
   stat:
-    path: /etc/default/motd-news
+    path: "/etc/default/motd-news"
   register: etc_default_motd_news
 
 
 - name: disable extra motd
   lineinfile:
-    dest: /etc/default/motd-news
+    dest: "/etc/default/motd-news"
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
     state: "{{ item.state }}"
@@ -626,7 +668,8 @@
 
 # reboot system, if required
 - name: does /var/run/reboot-required exist
-  stat: path=/var/run/reboot-required
+  stat:
+    path: "/var/run/reboot-required"
   register: var_run_reboot_required
 
 
