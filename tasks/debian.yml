@@ -237,6 +237,8 @@
       - cron
       - unattended-upgrades
       - aptitude
+      - netcat
+      - pv
     state: present
 
 
