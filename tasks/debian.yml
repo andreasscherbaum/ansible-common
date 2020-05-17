@@ -661,6 +661,22 @@
   when: etc_default_motd_news.stat.exists == True
 
 
+- block:
+  - name: Check RTC
+    fail:
+      msg: "$timertc must be either 'local' or 'UTC'"
+    when: timertc != "local" and timertc != "UTC"
+
+
+  - name: Set timezone
+    timezone:
+      name: "{{ timezone }}"
+      hwclock: "{{ timertc }}"
+    notify:
+      - restart crond
+
+  when: timezone is defined and timertc is defined
+
 
 #- meta: flush_handlers
 
