@@ -19,6 +19,12 @@
     state: restarted
 
 
+- name: restart crond
+  service:
+    name: cron
+    state: restarted
+
+
 - name: rebuild Postfix aliases
   command: "{{ item }}"
   with_items:
