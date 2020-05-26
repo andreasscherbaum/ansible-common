@@ -14,4 +14,6 @@ Unattended-Upgrade::MailOnlyOnError "true";
 Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
 Unattended-Upgrade::Remove-Unused-Dependencies "true";
 
+{% if serveradmin_email is defined %}
 Unattended-Upgrade::Mail "{{ serveradmin_email }}";
+{% endif %}
