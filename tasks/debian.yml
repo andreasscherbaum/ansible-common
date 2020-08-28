@@ -239,6 +239,7 @@
       - aptitude
       - netcat
       - pv
+      - wipe
     state: present
 
 
