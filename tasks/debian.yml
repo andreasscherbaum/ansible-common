@@ -498,7 +498,22 @@
       - reload Postfix
 
 
-  - name: /etc/postfix/main.cf
+  - name: /etc/postfix/main.cf (myhostname)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
+      - { regexp: '^#? *myhostname', line: 'myhostname = {{ postfix_myhostname }}', state: present }
+    notify:
+      - reload Postfix
+    when: postfix_myhostname is defined
+
+
+  # myhostname
+  - name: /etc/postfix/main.cf (myhostname)
     lineinfile:
       dest: /etc/postfix/main.cf
       regexp: "{{ item.regexp }}"
@@ -507,14 +522,12 @@
       create: no
     loop:
       - { regexp: '^#? *myhostname', line: 'myhostname = {{ hostname }}.{{ domainname }}', state: present }
-      - { regexp: '^#? *mydestination', line: 'mydestination = $myhostname, {{ hostname }}, {{ hostname }}.{{ domainname }}, localhost, localhost.localdomain', state: present }
-      - { regexp: '^#? *myorigin', line: 'myorigin = {{ hostname }}.{{ domainname }}', state: present }
     notify:
       - reload Postfix
-    when: domainname is defined
+    when: postfix_myhostname is not defined and domainname is defined
 
 
-  - name: /etc/postfix/main.cf
+  - name: /etc/postfix/main.cf (myhostname)
     lineinfile:
       dest: /etc/postfix/main.cf
       regexp: "{{ item.regexp }}"
@@ -523,11 +536,109 @@
       create: no
     loop:
       - { regexp: '^#? *myhostname', line: 'myhostname = {{ hostname }}', state: present }
+    notify:
+      - reload Postfix
+    when: postfix_myhostname is not defined and domainname is not defined
+
+
+  # mydestination
+  - name: /etc/postfix/main.cf (mydestination)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
+      - { regexp: '^#? *mydestination', line: 'mydestination = {{ postfix_mydestination }}', state: present }
+    notify:
+      - reload Postfix
+    when: postfix_mydestination is defined
+
+
+  - name: /etc/postfix/main.cf (mydestination)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
+      - { regexp: '^#? *mydestination', line: 'mydestination = $myhostname, {{ hostname }}, {{ hostname }}.{{ domainname }}, localhost, localhost.localdomain', state: present }
+    notify:
+      - reload Postfix
+    when: postfix_mydestination is not defined and domainname is defined
+
+
+  - name: /etc/postfix/main.cf (mydestination)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
       - { regexp: '^#? *mydestination', line: 'mydestination = $myhostname, {{ hostname }}, localhost, localhost.localdomain', state: present }
+    notify:
+      - reload Postfix
+    when: postfix_mydestination is not defined and domainname is not defined
+
+
+  # myorigin
+  - name: /etc/postfix/main.cf (myorigin)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
+      - { regexp: '^#? *myorigin', line: 'myorigin = {{ postfix_myorigin }}', state: present }
+    notify:
+      - reload Postfix
+    when: postfix_myorigin is defined
+
+
+  - name: /etc/postfix/main.cf (myorigin)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
+      - { regexp: '^#? *myorigin', line: 'myorigin = {{ hostname }}.{{ domainname }}', state: present }
+    notify:
+      - reload Postfix
+    when: postfix_myorigin is not defined and domainname is defined
+
+
+  - name: /etc/postfix/main.cf (myorigin)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
       - { regexp: '^#? *myorigin', line: 'myorigin = {{ hostname }}', state: present }
     notify:
       - reload Postfix
-    when: domainname is not defined
+    when: postfix_myorigin is not defined and domainname is not defined
+
+
+  - name: /etc/postfix/main.cf (smtpd_banner)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
+      - { regexp: '^#? *smtpd_banner', line: 'smtpd_banner = {{ postfix_smtpd_banner }}', state: present }
+    notify:
+      - reload Postfix
+    when: postfix_smtpd_banner is defined
 
 
   - name: /etc/postfix/main.cf
