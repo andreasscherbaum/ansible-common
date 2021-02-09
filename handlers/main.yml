@@ -32,7 +32,15 @@
 
 
 - name: reload Postfix
-  service: name=postfix state=reloaded
+  service:
+    name: postfix
+    state: reloaded
+
+
+- name: restart Postfix
+  service:
+    name: postfix
+    state: restarted
 
 
 - name: restart system
