@@ -485,7 +485,48 @@
 
 # configure Postfix
 - block:
-  - name: /etc/postfix/main.cf
+  - name: /etc/postfix/main.cf (smtpd_recipient_restrictions)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
+      - { regexp: '^#? *smtpd_recipient_restrictions', line: 'smtpd_recipient_restrictions = {{ postfix_smtpd_recipient_restrictions }}', state: present }
+    notify:
+      - restart Postfix
+    when: postfix_smtpd_recipient_restrictions is defined
+
+
+  - name: /etc/postfix/main.cf (smtpd_recipient_restrictions)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
+      - { regexp: '^#? *smtpd_recipient_restrictions', state: absent }
+    notify:
+      - restart Postfix
+    when: postfix_smtpd_recipient_restrictions is not defined
+
+
+  - name: /etc/postfix/main.cf (inet_interfaces)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
+      - { regexp: '^#? *inet_interfaces', line: 'inet_interfaces = {{ postfix_inet_interfaces }}', state: present }
+    notify:
+      - restart Postfix
+    when: postfix_inet_interfaces is defined
+
+
+  - name: /etc/postfix/main.cf (inet_interfaces)
     lineinfile:
       dest: /etc/postfix/main.cf
       regexp: "{{ item.regexp }}"
@@ -495,7 +536,8 @@
     loop:
       - { regexp: '^#? *inet_interfaces', line: 'inet_interfaces = loopback-only', state: present }
     notify:
-      - reload Postfix
+      - restart Postfix
+    when: postfix_inet_interfaces is not defined
 
 
   - name: /etc/postfix/main.cf (myhostname)
@@ -639,6 +681,34 @@
     notify:
       - reload Postfix
     when: postfix_smtpd_banner is defined
+
+
+  - name: /etc/postfix/main.cf (mynetworks)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
+      - { regexp: '^#? *mynetworks', line: 'mynetworks = {{ postfix_mynetworks }}', state: present }
+    notify:
+      - reload Postfix
+    when: postfix_mynetworks is defined
+
+
+  - name: /etc/postfix/main.cf (mynetworks)
+    lineinfile:
+      dest: /etc/postfix/main.cf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+      state: "{{ item.state }}"
+      create: no
+    loop:
+      - { regexp: '^#? *mynetworks', line: 'mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128', state: present }
+    notify:
+      - reload Postfix
+    when: postfix_mynetworks is not defined
 
 
   - name: /etc/postfix/main.cf
